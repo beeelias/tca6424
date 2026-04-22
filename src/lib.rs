@@ -13,9 +13,14 @@
 pub mod reg {
     pub const INPUT_PORT0: u8 = 0x00;
     pub const OUTPUT_PORT0: u8 = 0x04;
+    pub const POLARITY_INV_PORT0: u8 = 0x08;
     pub const CONFIG_PORT0: u8 = 0x0C;
-    /// Auto-increment variant of INPUT_PORT0.
+
+    /// Auto-increment variants (bit 7 set).
     pub const AI_INPUT_PORT0: u8 = 0x80;
+    pub const AI_OUTPUT_PORT0: u8 = 0x84;
+    pub const AI_POLARITY_INV_PORT0: u8 = 0x88;
+    pub const AI_CONFIG_PORT0: u8 = 0x8C;
 }
 
 #[derive(Debug)]
@@ -45,10 +50,11 @@ macro_rules! log_info {
 ///
 /// All output and config registers default to `0xFF` (hardware power-on state).
 pub struct Tca6424a<I2C> {
-    i2c:    I2C,
-    addr7:  u8,
-    output: [u8; 3],
-    config: [u8; 3],
+    i2c:      I2C,
+    addr7:    u8,
+    output:   [u8; 3],
+    config:   [u8; 3],
+    polarity: [u8; 3],
 }
 
 // The I2C trait bound differs between sync and async, so we need two impl
@@ -66,8 +72,9 @@ where
         Self {
             i2c,
             addr7,
-            output: [0xFF; 3],
-            config: [0xFF; 3],
+            output: [0xFF; 3],   // power-on default
+            config: [0xFF; 3],   // power-on default (all inputs)
+            polarity: [0x00; 3], // power-on default (no inversion)
         }
     }
 
@@ -126,6 +133,22 @@ where
         Ok(())
     }
 
+    /// Set polarity inversion for a port. A `1` bit inverts the
+    /// corresponding input pin's value when read via the input register.
+    #[maybe_async::maybe_async]
+    pub async fn set_polarity_inversion(
+        &mut self,
+        port: Port,
+        value: u8,
+    ) -> Result<(), Error<E>> {
+        let idx = port as usize;
+        if value != self.polarity[idx] {
+            self.write_reg(reg::POLARITY_INV_PORT0 + idx as u8, value).await?;
+            self.polarity[idx] = value;
+        }
+        Ok(())
+    }
+
     /// Read all three input ports (auto-increment).
     #[maybe_async::maybe_async]
     pub async fn read_inputs(&mut self) -> Result<[u8; 3], Error<E>> {
@@ -147,6 +170,10 @@ where
 
     pub fn config(&self, port: Port) -> u8 {
         self.config[port as usize]
+    }
+
+    pub fn polarity(&self, port: Port) -> u8 {
+        self.polarity[port as usize]
     }
 
     pub fn addr(&self) -> u8 {
