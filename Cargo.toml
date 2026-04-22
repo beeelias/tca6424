@@ -1,6 +1,6 @@
 [package]
 name = "tca6424"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "TCA6424A 24-bit I2C GPIO expander driver (sync + async, no_std)"
 license = "MIT"
