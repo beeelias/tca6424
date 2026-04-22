@@ -1,0 +1,29 @@
+[package]
+name = "tca6424"
+version = "0.1.0"
+edition = "2024"
+description = "TCA6424A 24-bit I2C GPIO expander driver (sync + async, no_std)"
+license = "MIT"
+repository = "https://github.com/beeelias/tca6424"
+keywords = ["tca6424", "gpio", "i2c", "embedded-hal", "no_std"]
+categories = ["embedded", "no-std", "hardware-support"]
+
+[features]
+default = ["_sync"]
+## Enable async API using `embedded-hal-async` I2C traits.
+## When disabled (default), the driver uses synchronous `embedded-hal` traits.
+async = ["dep:embedded-hal-async"]
+## Internal: tells maybe-async to strip async/await. Active by default;
+## the `async` consumer must disable default-features.
+_sync = ["maybe-async/is_sync"]
+## Enable `defmt::Format` derives and defmt logging (for embedded/no_std).
+defmt = ["dep:defmt"]
+## Enable `log` crate logging (for std environments).
+log = ["dep:log"]
+
+[dependencies]
+embedded-hal = "1.0.0"
+embedded-hal-async = { version = "1.0.0", optional = true }
+maybe-async = "0.2"
+defmt = { version = "1.0", optional = true }
+log = { version = "0.4", optional = true }
